@@ -12,12 +12,20 @@ services:
       - "5432:5432"
     env_file:
       - .env
+
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
   web:
     container_name: backend
     restart: always
     build:
       context: ././
       dockerfile: dockerfile
+    command: >
+      sh -lc "cd backend && python manage.py migrate && daphne -b 0.0.0.0. -p 8000 config.asgi:application"
     expose:
       - 8000
     ports:
@@ -28,6 +36,9 @@ services:
       - .env
     depends_on:
       - db
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379/0
 
 volumes:
   postgres_data:

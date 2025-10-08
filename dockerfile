@@ -8,7 +8,7 @@ WORKDIR /app
 COPY poetry.lock pyproject.toml /app/
 
 RUN pip install -U pip && \
-    pip install poetry && \
+    pip install poetry daphne && \
     poetry config virtualenvs.create false && \
     poetry install --no-root
 

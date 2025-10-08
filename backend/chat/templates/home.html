@@ -1,11 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Mini chat</title>
-    <p> Day 1: everything works </p>
+  <meta charset="utf-8">
+  <title>Mini-chat WebSocket test</title>
+  <style>
+    body { font-family: -apple-system, Arial, sans-serif; }
+    #status { margin:10px 0; padding:6px; border:1px solid #ccc; }
+    pre { background:#f6f6f6; padding:8px; min-height:120px; }
+  </style>
 </head>
 <body>
+  <h2>Mini-chat WebSocket test</h2>
 
+  <div id="status">[status: page loaded]</div>
+
+  <label>Room: </label>
+  <input id="room" value="lobby">
+  <br><br>
+
+  <input id="msg" placeholder="Type message..." />
+  <button id="send">Send</button>
+
+  <pre id="log"></pre>
+
+  <script>
+  (function () {
+    console.log("WebSocket test script loaded");
+
+    var statusBox = document.getElementById('status');
+    var roomEl    = document.getElementById('room');
+    var msgEl     = document.getElementById('msg');
+    var sendBtn   = document.getElementById('send');
+    var logEl     = document.getElementById('log');
+
+    function setStatus(t) { statusBox.textContent = '[status: ' + t + ']'; }
+
+    var socket = null;
+
+    function connect() {
+      var host  = (window.location.hostname === '0.0.0.0') ? 'localhost' : window.location.hostname;
+      var port  = window.location.port ? (':' + window.location.port) : ':8000';
+      var proto = (window.location.protocol === 'https:') ? 'wss' : 'ws';
+      var room  = roomEl.value || 'lobby';
+      var url   = proto + '://' + host + port + '/ws/chat/' + encodeURIComponent(room) + '/';
+
+      console.log('Connecting to:', url);
+
+      try { socket = new WebSocket(url); }
+      catch (e) { console.error('WS create error', e); setStatus('create error'); return; }
+
+      setStatus('connecting to ' + url);
+
+      socket.onopen = function () { setStatus('connected to ' + url); };
+      socket.onclose = function (e) { setStatus('closed (' + e.code + ')'); };
+      socket.onerror = function (e) { console.error('WS error', e); setStatus('error'); };
+      socket.onmessage = function (e) {
+        try {
+          var data = JSON.parse(e.data);
+          logEl.textContent += data.message + '\n';
+        } catch (err) {
+          console.error('bad message', e.data, err);
+        }
+      };
+    }
+
+    connect();
+
+    sendBtn.addEventListener('click', function () {
+      if (!socket || socket.readyState !== 1) { // 1 = WebSocket.OPEN
+        setStatus('not connected');
+        return;
+      }
+      var msg = msgEl.value || '';
+      socket.send(JSON.stringify({ "message": msg }));
+      msgEl.value = '';
+    });
+  })();
+  </script>
 </body>
 </html>
